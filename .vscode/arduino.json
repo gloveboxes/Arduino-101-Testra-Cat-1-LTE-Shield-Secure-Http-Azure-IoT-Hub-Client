@@ -1,0 +1,5 @@
+{
+    "board": "Intel:arc32:arduino_101",
+    "sketch": "AzureClient\\AzureClient.ino",
+    "port": "COM16"
+}
