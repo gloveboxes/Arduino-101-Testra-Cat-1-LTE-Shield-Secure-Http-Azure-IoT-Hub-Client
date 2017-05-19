@@ -1,9 +1,7 @@
 #include "AzureIotHub.h"
 
-AzureIotHub::AzureIotHub(Connection4G *conn, const char *cs, const char *route)
 {
   this->conn = conn;
-  this->route = route;
   AzureIotHub::setConnectionString(cs);
   AzureIotHub::initialiseHub();
 }
@@ -73,7 +71,6 @@ String AzureIotHub::buildHttpRequest(int length)
          "Host: " + host + "\r\n" +
          "Authorization: SharedAccessSignature " + fullSas + "\r\n" +
          "Content-Type: application/atom+xml;type=entry;charset=utf-8\r\n" +
-         "iothub-app-route-id: " + route + "\r\n" +
          "Content-Length: " + String(length) + "\r\n\r\n";
 }
 

@@ -127,7 +127,7 @@ void LinkSprite::zeroPadHex(byte value)
 unsigned int LinkSprite::getSizeFromCamera()
 {
     char result[9];
-    int charCount = 0;
+    // int charCount = 0;
     int length = 0;
 
     uint16_t test = 27560;

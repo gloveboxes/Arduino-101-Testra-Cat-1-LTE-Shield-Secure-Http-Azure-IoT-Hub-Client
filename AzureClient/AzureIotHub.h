@@ -32,7 +32,7 @@ private:
   const char *host;
   char *key;
   const char *deviceId;
-  const char *route;
+  const char *routeId;
 
   String sasUrl;
   String endPoint;
