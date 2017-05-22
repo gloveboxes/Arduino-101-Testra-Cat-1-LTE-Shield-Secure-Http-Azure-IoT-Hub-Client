@@ -28,7 +28,7 @@ This project was implemented and tested on the Arduino 101 with a Cat-1 Shield.
 
 See [The Kit](https://github.com/telstra/TIC2017/wiki/1.-The-Kit)
 
-![Cat1 Shield](https://raw.githubusercontent.com/gloveboxes/Arduino-101-with-Cat-1-Shield-Secure-Http-Azure-IoT-Hub-Client/master/Resources/Cat1Shield.jpg)
+![Cat1 Shield](https://raw.githubusercontent.com/gloveboxes/Arduino-101-Testra-Cat-1-LTE-Shield-Secure-Http-Azure-IoT-Hub-Client/master/Resources/Cat1Shield.jpg)
 
 This solution streams sample sensor data securely over HTTPS / REST directly to Azure IoT Hub or Azure Event Hub.
 
@@ -52,7 +52,9 @@ designed for internet scale data ingestion.
 
 For more background information read this "[Stream Analytics & Power BI: A real-time analytics dashboard for streaming data](https://azure.microsoft.com/en-us/documentation/articles/stream-analytics-power-bi-dashboard/)" article.
 
+# Solution Architecture
 
+![Architecture](https://raw.githubusercontent.com/gloveboxes/Arduino-101-Testra-Cat-1-LTE-Shield-Secure-Http-Azure-IoT-Hub-Client/master/Resources/Architecture.jpg)
 
 # Setup and Deployment Summary
 
