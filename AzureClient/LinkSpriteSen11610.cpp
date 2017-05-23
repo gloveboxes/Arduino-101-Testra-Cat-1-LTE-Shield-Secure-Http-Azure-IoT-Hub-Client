@@ -1,200 +1,232 @@
 #include "LinkSpriteSen11610.h"
+#include <base64.hpp>
 
 void LinkSprite::SendResetCmd()
 {
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x26);
-    camSerial->write(ZERO);
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x26);
+    Serial2->write(ZERO);
 }
 
 void LinkSprite::SetImageSizeCmd(byte Size)
 {
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x54);
-    camSerial->write(0x01);
-    camSerial->write(Size);
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x54);
+    Serial2->write(0x01);
+    Serial2->write(Size);
+}
+
+void LinkSprite::getImageSize()
+{
+    //56 00 34 01 00
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x34);
+    Serial2->write(0x01);
+    Serial2->write(ZERO);
 }
 
 void LinkSprite::SetBaudRateCmd(byte baudrate)
 {
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x24);
-    camSerial->write(0x03);
-    camSerial->write(0x01);
-    camSerial->write(baudrate);
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x24);
+    Serial2->write(0x03);
+    Serial2->write(0x01);
+
+    Serial2->write(0x1C);
+    Serial2->write(0x4C);
+    //0D A6
+    //1C 4C
+    //    Serial2->write(baudrate);
 }
 
-//Send take picture command
 void LinkSprite::SendTakePhotoCmd()
 {
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x36);
-    camSerial->write(0x01);
-    camSerial->write(ZERO);
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x36);
+    Serial2->write(0x01);
+    Serial2->write(ZERO);
 }
 
-//Read data
-int LinkSprite::SendReadDataCmd(int cameraAddress)
+void LinkSprite::SendStopTakePhotoCmd()
 {
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x32);
-    camSerial->write(0x0c);
-    camSerial->write(ZERO);
-    camSerial->write(0x0a);
-    camSerial->write(ZERO);
-    camSerial->write(ZERO);
-    camSerial->write(highByte(cameraAddress));
-    camSerial->write(lowByte(cameraAddress));
-    camSerial->write(ZERO);
-    camSerial->write(ZERO);
-    camSerial->write(ZERO);
-    camSerial->write(GET_DATA_BUFFER_SIZE);
-    camSerial->write(ZERO);
-    camSerial->write(0x0a);
-    cameraAddress += GET_DATA_BUFFER_SIZE; //address increases 32£¬set according to buffer size
-    return cameraAddress;
+    //56 00 36 01 03
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x36);
+    Serial2->write(0x01);
+    Serial2->write(0x03);
+}
+
+void LinkSprite::SendReadDataCmd()
+{
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x32);
+    Serial2->write(0x0c);
+    Serial2->write(ZERO);
+    Serial2->write(0x0a);
+    Serial2->write(ZERO);
+    Serial2->write(ZERO);
+
+    Serial2->write(highByte(cameraAddress));
+    Serial2->write(lowByte(cameraAddress));
+
+    Serial2->write(ZERO);
+    Serial2->write(ZERO);
+
+    Serial2->write(highByte(frameLength));
+    Serial2->write(lowByte(frameLength));
+
+    Serial2->write(ZERO);
+    Serial2->write(0x0A);
+    cameraAddress += frameLength;
 }
 
 void LinkSprite::StopTakePhotoCmd()
 {
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x36);
-    camSerial->write(0x01);
-    camSerial->write(0x03);
+    Serial2->write(0x56);
+    Serial2->write(ZERO);
+    Serial2->write(0x36);
+    Serial2->write(0x01);
+    Serial2->write(0x03);
 }
 
-void LinkSprite::getDataFromCamera()
-// I think this function has problems.
-// There presently a timeout so the
-// function will continue to loop if
-// the end data characters are not
-// read from the camera.
+void LinkSprite::initCamera()
 {
-    byte rxBuffer[GET_DATA_BUFFER_SIZE];
-    boolean endFlag = 0;
-    int cameraAddress = 0;
+    EndFlag = false;
+    cameraAddress = 0x0000;
+    length = 0;
 
-    while (!endFlag)
+    if (!initialised)
     {
-        int rxBufferIndex = 0;
-        int indexK = 0;
-        int countIndex = 0;
-        cameraAddress = SendReadDataCmd(cameraAddress);
+        Serial2->begin(38400);
+        initialised = true;
+    }
 
-        delay(25);
-        while (camSerial->available() > 0)
+    SendResetCmd();
+    delay(100);
+    Serial2->begin(38400);
+    delay(1000);
+    Serial.println("reset");
+    while (Serial2->available())
+    {
+        incomingbyte = Serial2->read();
+    }
+}
+
+void LinkSprite::setBaud()
+{
+    SetBaudRateCmd(0x0D);
+    delay(500);
+    Serial2->end();
+
+    Serial2->begin(57600);
+    delay(200);
+    Serial.println("baud");
+    while (Serial2->available())
+    {
+        incomingbyte = Serial2->read();
+    }
+}
+
+void LinkSprite::takePhoto()
+{
+    SendTakePhotoCmd();
+    delay(500);
+    Serial.println("take photo");
+    while (Serial2->available())
+    {
+        incomingbyte = Serial2->read();
+        //    Serial.println(String(incomingbyte));
+    }
+    Serial.println("photo taken");
+}
+
+int LinkSprite::getImagelength()
+{
+    byte buffer[9];
+    int index = 0, length = 0;
+
+    getImageSize();
+    delay(500);
+
+    while (Serial2->available() && index < 9)
+    {
+        incomingbyte = Serial2->read();
+        buffer[index] = incomingbyte;
+        index++;
+    }
+
+    if (index == 9)
+    {
+        length = buffer[7] << 8;
+        length += buffer[8];
+    }
+    else
+    {
+        length = -1;
+        EndFlag = true;
+    }
+    return length;
+}
+
+void LinkSprite::stopPhoto()
+{
+    Serial.println();
+    Serial.println("stop photo");
+    SendStopTakePhotoCmd();
+    delay(1000);
+    while (Serial2->available())
+    {
+        incomingbyte = Serial2->read();
+    }
+}
+
+bool LinkSprite::eof()
+{
+    return EndFlag;
+}
+
+int LinkSprite::getCalculatedImageSize()
+{
+    return length;
+}
+
+char *LinkSprite::getCamaraData()
+{
+    int j = 0, k = 0, count = 0;
+
+    SendReadDataCmd();
+    delay(10);
+
+    while (Serial2->available() > 0)
+    {
+        incomingbyte = Serial2->read();
+        k++;
+        //            delay(1); //250 for regular
+        if ((k > 5) && (j < 24) && (!EndFlag))
         {
-            byte inputCharacter = camSerial->read();
-            indexK++;
-            if ((indexK > 5) && (rxBufferIndex < GET_DATA_BUFFER_SIZE) && (!endFlag))
+            a[j] = incomingbyte;
+            if ((a[j - 1] == 0xFF) && (a[j] == 0xD9)) //tell if the picture is finished
             {
-                rxBuffer[rxBufferIndex] = inputCharacter;
-                if ((rxBuffer[rxBufferIndex - 1] == 0xFF) && (rxBuffer[rxBufferIndex] == 0xD9)) //Check if the picture is over
-                    endFlag = 1;
-                rxBufferIndex++;
-                countIndex++;
+                EndFlag = true;
             }
+            j++;
+            count++;
         }
-
-        for (int i = 0; i < countIndex; i++)
-        {
-            if (rxBuffer[i] < 0x10)
-            {
-                Serial.print("0");
-            }
-            Serial.print(rxBuffer[i], HEX);
-            Serial.print(" ");
-        } //Send jpeg picture over the serial port
-        Serial.println();
     }
-}
-
-void LinkSprite::zeroPadHex(byte value)
-{
-    if (value < 0x10)
+    for (int i = 0; i < Base64BufferLength; i++)
     {
-        Serial.print("0");
+        base64[i] = 0;
     }
-    Serial.print(value, HEX);
-}
+    
+    encode_base64(a, count, base64);
+    length += count;
 
-unsigned int LinkSprite::getSizeFromCamera()
-{
-    char result[9];
-    // int charCount = 0;
-    int length = 0;
-
-    uint16_t test = 27560;
-
-    result[7] = highByte(test);
-    Serial.println((unsigned int)result[7]);
-    result[8] = lowByte(test);
-    Serial.println((unsigned int)result[8]);
-
-    camSerial->write(0x56);
-    camSerial->write(ZERO);
-    camSerial->write(0x34);
-    camSerial->write(0x01);
-    camSerial->write(ZERO);
-
-    delay(1000); // wait for the command to execute on the camera
-
-//    while (camSerial->available() > 0 && charCount < 9) // expect 9 bytes back from camera
-//    {
-//        result[charCount] = camSerial->read();
-//        charCount++;
-//    }
-
-    length = result[7];
-    length = length << 8;
-    length += result[8];
-
-    Serial.print("length ");
-    Serial.println(length);
-
-    return length; 
-}
-
-int LinkSprite::dumpRxToTerminal(unsigned long initTimeoutInterval, unsigned long characterTimeout, boolean extraDebugFlag)
-{
-    unsigned long beginTimeout = millis();
-    unsigned long lastCharacter = millis();
-    boolean noRxYetFlag = 1;
-    int receivedCharacters = 0;
-    while (((millis() - beginTimeout < initTimeoutInterval) && noRxYetFlag) || (millis() - lastCharacter < characterTimeout))
-    {
-        if (camSerial->available() > 0)
-        {
-            if (noRxYetFlag)
-            {
-                noRxYetFlag = 0;
-                Serial.print("received from camera = ");
-            }
-            byte inputCharacter = camSerial->read();
-            zeroPadHex(inputCharacter);
-            Serial.print(" ");
-            lastCharacter = millis(); // reset lastCharacter timer
-            receivedCharacters++;
-            if (receivedCharacters % DATA_PER_ROW == 0)
-            {
-                Serial.println();
-            }
-        }
-    }
-    if (noRxYetFlag && extraDebugFlag)
-    {
-        Serial.println("Timeout with no data from camera.");
-    }
-    else if (extraDebugFlag)
-    {
-        Serial.println();
-        Serial.println("End of received data.");
-    }
-    return receivedCharacters;
+    return (char *)base64;
 }

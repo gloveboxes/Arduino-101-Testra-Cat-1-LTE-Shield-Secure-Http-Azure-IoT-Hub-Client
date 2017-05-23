@@ -1,53 +1,60 @@
 #ifndef LinkSpriteSen1160_h
 #define LinkSpriteSen1160_h
 
-#include <SoftwareSerial.h>
 #include <Arduino.h>
+#include <SoftwareSerial.h>
+#define frameLength 0x18
+#define Base64BufferLength 33 // needs 32 chars, plus a null terminator
 
 class LinkSprite
 {
 public:
-  LinkSprite(int cameraRecievePin, int cameraTransmitPin)
+  LinkSprite(SoftwareSerial *serial)
   {
-    camSerial = new SoftwareSerial(cameraRecievePin, cameraTransmitPin); // RX, TX
-    camSerial->begin(38400);
-
+    //    Serial2 = SoftwareSerial(5, 6);
+    Serial2 = serial;
+    //    Serial2->begin(38400);
   }
-  void SendResetCmd();
-  void SetImageSizeCmd(byte Size);
-  void SetBaudRateCmd(byte baudrate);
-  void SendTakePhotoCmd();
-  int SendReadDataCmd(int cameraAddress);
-  void SendTakePhotoCmd(boolean extraDebugFlag);
-  void StopTakePhotoCmd();
 
-  void getDataFromCamera();
-  void zeroPadHex(byte value);  
-  unsigned int getSizeFromCamera();
-  
-  int dumpRxToTerminal(unsigned long initTimeoutInterval, unsigned long characterTimeout, boolean extraDebugFlag);
-
+  void initCamera();
+  void setBaud();
+  void takePhoto();
+  int getImagelength();
+  void stopPhoto();
+  char *getCamaraData();
+  bool eof();
+  int getCalculatedImageSize();
 
 protected:
 private:
-  SoftwareSerial *camSerial;
-  const byte ZERO = 0;
-  const unsigned long TIMEOUT_INTERVAL = 2000;
-  const unsigned long UNEXPECTED_REPLY_TIMEOUT = 200;
-  const unsigned long CHARACTER_TIMEOUT = 100;
-  const unsigned long SHOW_MENU_INTERVAL = 20000;
-  unsigned long startWaitingTime;
-  unsigned long periodicTaskTimer;
-  const byte RESET_CHARACTER = 'r';
-  const byte PHOTO_CHARACTER = 'p';
-  const byte GET_DATA_CHARACTER = 'g';
-  const byte SIZE_CHARACTER = 's';
-  const byte QUOTE = 34;
-  const byte DATA_PER_ROW = 16;
-  const byte DELAY_AFTER_RESET_SECONDS = 5;
-  const int GET_DATA_BUFFER_SIZE = 0X18;
-  boolean resetFlag = 0;
-  boolean photoTakenFlag = 0;
+  SoftwareSerial *Serial2; // = SoftwareSerial(5, 6); // RX, TX         //Configure pin 4 and 5 as soft serial port
+  void SendResetCmd();
+  void SetImageSizeCmd(byte Size);
+  void getImageSize();
+  void SetBaudRateCmd(byte baudrate);
+  void SendTakePhotoCmd();
+  void SendStopTakePhotoCmd();
+  void SendReadDataCmd();
+  void StopTakePhotoCmd();
+
+  byte ZERO = 0x00;
+  byte incomingbyte;
+  int cameraAddress = 0x0000; //Read Starting address
+  boolean EndFlag = 0;
+  unsigned char base64[Base64BufferLength];
+  int length = 0;
+  byte a[frameLength];
+
+  bool initialised = false;
+
+  enum baudRates : int
+  {
+    b96000 = 8989,
+    b19200 = 0000,
+    b38400 = 8878,
+    b57600 = 6767,
+    b115200 = 8989
+  };
 };
 
 #endif
