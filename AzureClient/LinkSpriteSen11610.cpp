@@ -144,10 +144,9 @@ void LinkSprite::takePhoto()
         incomingbyte = Serial2->read();
         //    Serial.println(String(incomingbyte));
     }
-    Serial.println("photo taken");
 }
 
-int LinkSprite::getImagelength()
+int LinkSprite::getBase64EncodedImagelength()
 {
     byte buffer[9];
     int index = 0, length = 0;
@@ -166,12 +165,15 @@ int LinkSprite::getImagelength()
     {
         length = buffer[7] << 8;
         length += buffer[8];
+
+        length = ((4 * length / 3) + 3) & ~3;  // convert to size of base64 array
     }
     else
     {
         length = -1;
         EndFlag = true;
-    }
+    }  
+    
     return length;
 }
 
@@ -197,7 +199,7 @@ int LinkSprite::getCalculatedImageSize()
     return length;
 }
 
-char *LinkSprite::getCamaraData()
+char *LinkSprite::getBase64EncodedData(int &base64Length)
 {
     int j = 0, k = 0, count = 0;
 
@@ -208,7 +210,7 @@ char *LinkSprite::getCamaraData()
     {
         incomingbyte = Serial2->read();
         k++;
-        //            delay(1); //250 for regular
+//                    delay(1); //250 for regular
         if ((k > 5) && (j < 24) && (!EndFlag))
         {
             a[j] = incomingbyte;
@@ -220,13 +222,10 @@ char *LinkSprite::getCamaraData()
             count++;
         }
     }
-    for (int i = 0; i < Base64BufferLength; i++)
-    {
-        base64[i] = 0;
-    }
-    
-    encode_base64(a, count, base64);
-    length += count;
+
+    length += count;   
+    base64Length = encode_base64(a, count, base64);
+    base64[base64Length] = 0; // null terminate base64 chars
 
     return (char *)base64;
 }

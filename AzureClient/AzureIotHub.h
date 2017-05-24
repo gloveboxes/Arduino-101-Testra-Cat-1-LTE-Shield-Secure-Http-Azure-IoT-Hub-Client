@@ -20,6 +20,7 @@ public:
   void sendBegin(int length);
   void sendData(String data);
   void sendData(const char *data, int length);
+  void sendData(char *data);
   String sendEnd();
 
   String requestDeviceBoundMessage();

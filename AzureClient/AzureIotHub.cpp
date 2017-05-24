@@ -165,6 +165,10 @@ void AzureIotHub::sendBegin(int length)
   AzureIotHub::sendData(request);
 }
 
+void AzureIotHub::sendData(char *data){
+  conn->TCPWrite(data, strlen(data));
+}
+
 void AzureIotHub::sendData(const char *data, int length)
 {
   int segmentLength = 200;

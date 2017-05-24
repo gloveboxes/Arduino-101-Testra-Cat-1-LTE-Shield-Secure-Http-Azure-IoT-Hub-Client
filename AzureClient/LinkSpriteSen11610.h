@@ -19,9 +19,9 @@ public:
   void initCamera();
   void setBaud();
   void takePhoto();
-  int getImagelength();
+  int getBase64EncodedImagelength();
   void stopPhoto();
-  char *getCamaraData();
+  char *getBase64EncodedData(int &segLen);
   bool eof();
   int getCalculatedImageSize();
 

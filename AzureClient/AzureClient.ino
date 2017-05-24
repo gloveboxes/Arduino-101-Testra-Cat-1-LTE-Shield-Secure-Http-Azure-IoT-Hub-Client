@@ -30,10 +30,12 @@
 #include "Cat1shield.h"
 #include "TimeManager.h"
 #include "MemoryFree.h"
+#include <SoftwareSerial.h>
+#include "LinkSpriteSen11610.h"
 
 const char *connectionString = "HostName=glovebox.azure-devices.net;DeviceId=telstra;SharedAccessKey=NPffQF8lebAz5S0M6oq3Br51W0FmjRme1TUrudWjTOA=";
 const char *deviceLocation = "Sydney";
-int publishRateInSeconds = 20;
+int publishRateInSeconds = 10;
 const int buttonPin = 7; // the number of the pushbutton pin
 
 // sample flower images
@@ -47,6 +49,9 @@ ShieldInterface shieldif;
 IoTShield shield(&shieldif);
 Connection4G conn(true, &shieldif);
 TimeManager timeMgr(&shield);
+
+SoftwareSerial mySerial(9, 10); // RX, TX         //Configure pin 4 and 5 as soft serial port
+LinkSprite camera(&mySerial);
 
 AzureIotHub hub(&conn, connectionString, "image-scoring-v1");
 //Sensor sensor(&shield, deviceLocation);  // Fake sample environmental data
@@ -63,7 +68,7 @@ void setup()
   Serial.println("");
   delay(1000);
 
-//  while (!Serial) ; // Wait for serial character before starting
+  while (!Serial) ; // Wait for serial character before starting
 
   Serial.println(F("******* Waiting for shield *********"));
   shield.waitUntilShieldIsReady();
@@ -86,8 +91,10 @@ void loop()
         Serial.println("Free memory: " + String(freeMemory()));
 
         imageSelect = (int)random(sizeof(images) / sizeof(char *)); // select random image from images array to send
-
-        String result = sendJsonImagePayload(images[imageSelect], imageSelect);
+  
+//        String result = sendJsonImagePayload(images[imageSelect], imageSelect);
+        String result = sendCameraPhoto();
+        
         Serial.println(result); // response 204 means successful send of data to Azure IoT Hub
       }
       else
@@ -106,6 +113,56 @@ void loop()
     Serial.println(F("[FAIL] Shield is not connected to 4G network!"));
     delay(5000);
   }
+}
+
+String sendCameraPhoto()
+{
+  time_t start;
+  int base64Length = 0;
+  int calcLength = 0;
+  
+  String jsonStart = "{\"ImageId\":\"camera\", \"Mem\":" + String(freeMemory()) + ",\"MsgId\":" + String(msgId++) + ",\"Schema\":\"Image\",\"Image\":\"";
+  String jsonEnd = "\"}";
+
+  camera.initCamera();
+  camera.setBaud();
+  
+  delay(500); //Wait 2-3 second to send take picture command
+  
+  camera.takePhoto();
+  
+  int imageLength = camera.getBase64EncodedImagelength(); 
+
+  Serial.print("Image Size: ");
+  Serial.println(imageLength);
+  
+  start = now();
+
+  contentLength = jsonStart.length();
+  contentLength += jsonEnd.length();
+  contentLength += imageLength;
+
+  Serial.print("Content length: ");
+  Serial.println(contentLength);
+
+  hub.sendBegin(contentLength);
+  hub.sendData(jsonStart);
+
+  while (!camera.eof())
+  {    
+    char *data1 = camera.getBase64EncodedData(base64Length);
+    hub.sendData(data1, base64Length);
+    calcLength += base64Length;   
+  }
+
+  Serial.print("calc ");
+  Serial.println(calcLength);
+
+  hub.sendData(jsonEnd);
+  String result = "Response: " + hub.sendEnd();
+  result += ", Seconds: " + String(now() - start);
+
+  return result;  
 }
 
 String sendJsonImagePayload(const char *image, int id)
