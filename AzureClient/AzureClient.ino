@@ -81,9 +81,9 @@ void setup()
   randomSeed(analogRead(0));
 
   pinMode(7, OUTPUT);
-
-  pinMode(interruptPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), blink, CHANGE);
+  pinMode(interruptPin, INPUT);
+//  pinMode(interruptPin, INPUT_PULLUP);
+//  attachInterrupt(digitalPinToInterrupt(interruptPin), blink, CHANGE);
 }
 
 void loop()
@@ -102,6 +102,7 @@ void loop()
       String result = sendCameraPhoto();
 
       Serial.println(result); // response 204 means successful send of data to Azure IoT Hub
+      digitalWrite(7, LOW);
     }
     else
     {
@@ -133,10 +134,12 @@ String sendCameraPhoto()
   delay(500); //Wait 2-3 second to send take picture command
 
   buttonPressed = false;
-  while (!buttonPressed)
-  {
-    delay(300);
-  }
+//  while (!buttonPressed)
+//  {
+//    delay(300);
+//  }
+
+  while (digitalRead(interruptPin) == HIGH) { delay(300); }
 
   digitalWrite(7, HIGH);
 

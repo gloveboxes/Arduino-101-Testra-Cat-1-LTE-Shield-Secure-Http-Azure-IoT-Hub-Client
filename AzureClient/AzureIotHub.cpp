@@ -188,6 +188,7 @@ int AzureIotHub::tcpWrite(char *data, uint16_t length)
   int tcpStatus = conn->TCPWrite(data, length);
   if (tcpStatus != CONNECTION4G_STATUS_OK)
   {
+    connected4G = false;
     conn->closeTCP();
   }
   return tcpStatus;
