@@ -72,7 +72,7 @@ void setup()
   Serial.println("");
   delay(1000);
 
-//  while (!Serial)    ; // Wait for serial character before starting
+//    while (!Serial)    ; // Wait for serial character before starting
 
   Serial.println(F("******* Waiting for shield *********"));
   shield.waitUntilShieldIsReady();
@@ -92,24 +92,22 @@ void loop()
   {
     if (timeMgr.SetTime())
     {
-        // Serial.print("Response: ");
-        // String result = hub.send(sensor.toJSON());
-        Serial.println("Free memory: " + String(freeMemory()));
-  
-        imageSelect = (int)random(sizeof(images) / sizeof(char *)); // select random image from images array to send
-  
-        //        String result = sendJsonImagePayload(images[imageSelect], imageSelect);
-        String result = sendCameraPhoto();
-  
-        Serial.println(result); // response 204 means successful send of data to Azure IoT Hub
-        
-        
+      // Serial.print("Response: ");
+      // String result = hub.send(sensor.toJSON());
+      Serial.println("Free memory: " + String(freeMemory()));
+
+      imageSelect = (int)random(sizeof(images) / sizeof(char *)); // select random image from images array to send
+
+//      String result = sendEmbbedPhoto(images[imageSelect], imageSelect);
+      String result = sendCameraPhoto();
+
+      Serial.println(result); // response 204 means successful send of data to Azure IoT Hub
     }
     else
     {
       Serial.println("Date/Time not set");
     }
-//    delay(publishRateInSeconds * 1000); // limit publishing rate
+    //    delay(publishRateInSeconds * 1000); // limit publishing rate
   }
   else
   {
@@ -127,13 +125,19 @@ String sendCameraPhoto()
   String jsonStart = "{\"ImageId\":\"camera\", \"Mem\":" + String(freeMemory()) + ",\"MsgId\":" + String(msgId++) + ",\"Schema\":\"Image\",\"Image\":\"";
   String jsonEnd = "\"}";
 
+  camera.setImageSize(LinkSprite::s640x480);
   camera.initCamera();
   camera.setBaud();
+  
 
   delay(500); //Wait 2-3 second to send take picture command
 
   buttonPressed = false;
-  while (!buttonPressed) {delay(100);}
+  while (!buttonPressed)
+  {
+    delay(300);
+  }
+
   digitalWrite(7, HIGH);
 
   camera.takePhoto();
@@ -152,20 +156,34 @@ String sendCameraPhoto()
   Serial.print("Content length: ");
   Serial.println(contentLength);
 
-  hub.sendBegin(contentLength);
-  hub.sendData(jsonStart);
+  if (hub.sendBegin(contentLength) != 0)
+  {
+    return "sendBegin failed";
+  }
+
+  if (hub.sendData(jsonStart) != 0)
+  {
+    return "sendData failed";
+  }
 
   while (!camera.eof())
   {
     char *data1 = camera.getBase64EncodedData(base64Length);
-    hub.sendData(data1, base64Length);
+    if (hub.sendData(data1, base64Length) != 0)
+    {
+      return "sendData failed";
+    }
     calcLength += base64Length;
   }
 
   Serial.print("calc ");
   Serial.println(calcLength);
 
-  hub.sendData(jsonEnd);
+  if (hub.sendData(jsonEnd) != 0)
+  {
+    return "sendData failed";
+  }
+
   String result = "Response: " + hub.sendEnd();
   result += ", Seconds: " + String(now() - start);
 
@@ -174,7 +192,7 @@ String sendCameraPhoto()
   return result;
 }
 
-String sendJsonImagePayload(const char *image, int id)
+String sendEmbbedPhoto(const char *image, int id)
 {
   const int segmentLength = 250; // note the max size is limited to 200 bytes per segment in the IoT hub Library
   int startChar = 0;
@@ -193,19 +211,36 @@ String sendJsonImagePayload(const char *image, int id)
   contentLength += jsonEnd.length();
   contentLength += imageLength;
 
-  hub.sendBegin(contentLength);
-  hub.sendData(jsonStart);
+  if (hub.sendBegin(contentLength) != 0)
+  {
+    return "sendBegin failed";
+  }
+
+  if (hub.sendData(jsonStart) != 0)
+  {
+    return "sendData failed";
+  }
 
   // now stream the image in segmentLength byte chunks
   while (startChar + segmentLength < imageLength)
   {
-    hub.sendData(image + startChar, segmentLength);
+    if (hub.sendData(image + startChar, segmentLength) != 0)
+    {
+      return "sendData failed";
+    }
     startChar += segmentLength;
   }
 
   // send remaining bytes in image
-  hub.sendData(image + startChar, imageLength - startChar);
-  hub.sendData(jsonEnd);
+  if (hub.sendData(image + startChar, imageLength - startChar) != 0)
+  {
+    return "sendData failed";
+  }
+
+  if (hub.sendData(jsonEnd) != 0)
+  {
+    return "sendData failed";
+  }
 
   String result = "Response: " + hub.sendEnd();
 
@@ -219,7 +254,6 @@ void blink()
   if ((long)(micros() - last_micros) >= debouncing_time * 1000)
   {
     buttonPressed = true;
-    Serial.println("pressed");
     last_micros = micros();
   }
 }

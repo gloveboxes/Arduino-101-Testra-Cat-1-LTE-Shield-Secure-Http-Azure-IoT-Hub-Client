@@ -11,13 +11,19 @@ class LinkSprite
 public:
   LinkSprite(SoftwareSerial *serial)
   {
-    //    Serial2 = SoftwareSerial(5, 6);
     Serial2 = serial;
-    //    Serial2->begin(38400);
   }
+
+  enum ImageSize : byte
+  {
+    s320x240 = 11,
+    s640x480 = 0,
+    s160x120 = 22
+  };
 
   void initCamera();
   void setBaud();
+  void setImageSize(ImageSize imgSize);
   void takePhoto();
   int getBase64EncodedImagelength();
   void stopPhoto();
@@ -25,13 +31,25 @@ public:
   bool eof();
   int getCalculatedImageSize();
 
+  enum baudRates : int
+  {
+    b96000 = 8989,
+    b19200 = 0000,
+    b38400 = 8878,
+    b57600 = 6767,
+    b115200 = 8989
+  };
+
+
+
 protected:
 private:
   SoftwareSerial *Serial2; // = SoftwareSerial(5, 6); // RX, TX         //Configure pin 4 and 5 as soft serial port
   void SendResetCmd();
-  void SetImageSizeCmd(byte Size);
+  void SetImageSizeCmd(ImageSize Size);
   void getImageSize();
   void SetBaudRateCmd(byte baudrate);
+
   void SendTakePhotoCmd();
   void SendStopTakePhotoCmd();
   void SendReadDataCmd();
@@ -47,14 +65,7 @@ private:
 
   bool initialised = false;
 
-  enum baudRates : int
-  {
-    b96000 = 8989,
-    b19200 = 0000,
-    b38400 = 8878,
-    b57600 = 6767,
-    b115200 = 8989
-  };
+
 };
 
 #endif

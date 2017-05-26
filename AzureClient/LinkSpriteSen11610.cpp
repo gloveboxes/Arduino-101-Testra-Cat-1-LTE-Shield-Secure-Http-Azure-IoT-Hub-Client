@@ -9,13 +9,17 @@ void LinkSprite::SendResetCmd()
     Serial2->write(ZERO);
 }
 
-void LinkSprite::SetImageSizeCmd(byte Size)
+void LinkSprite::SetImageSizeCmd(ImageSize imgSize)
 {
     Serial2->write(0x56);
     Serial2->write(ZERO);
-    Serial2->write(0x54);
+    Serial2->write(0x31);
+    Serial2->write(0x05);
+    Serial2->write(0x04);
     Serial2->write(0x01);
-    Serial2->write(Size);
+    Serial2->write(ZERO);
+    Serial2->write(0x19);
+    Serial2->write(imgSize);
 }
 
 void LinkSprite::getImageSize()
@@ -132,6 +136,24 @@ void LinkSprite::setBaud()
     {
         incomingbyte = Serial2->read();
     }
+}
+
+void LinkSprite::setImageSize(ImageSize imgSize)
+{
+  Serial.println("ImageSize");
+  
+  SetImageSizeCmd(imgSize);
+  delay(500);
+  Serial2->end();
+
+  Serial2->begin(57600);
+  delay(200);
+
+  while (Serial2->available())
+  {
+      incomingbyte = Serial2->read();
+      Serial.println((int)incomingbyte);
+  }
 }
 
 void LinkSprite::takePhoto()

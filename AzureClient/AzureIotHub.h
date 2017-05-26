@@ -17,10 +17,10 @@ class AzureIotHub
 public:
   AzureIotHub(Connection4G *conn, const char *cs, const char *route);
   String send(String json);
-  void sendBegin(int length);
-  void sendData(String data);
-  void sendData(const char *data, int length);
-  void sendData(char *data);
+  int sendBegin(int length);
+  int sendData(String data);
+  int sendData(const char *data, int length);
+  int sendData(char *data);
   String sendEnd();
 
   String requestDeviceBoundMessage();
@@ -45,7 +45,8 @@ private:
   void setConnectionString(String cs);
 
   void initialiseHub();
-  bool connectToAzure();
+  int connectToAzure();
+  int tcpWrite(char *data, uint16_t length);
 
   String createSas(char *key, String url);
   bool renewSas();
