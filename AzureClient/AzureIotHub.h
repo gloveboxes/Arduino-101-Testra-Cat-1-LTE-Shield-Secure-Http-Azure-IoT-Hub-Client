@@ -25,7 +25,7 @@ public:
 
   String requestDeviceBoundMessage();
 
-  time_t sasExpiryPeriodInSeconds = 5 * 60; // default to 30 minutes
+  time_t sasExpiryPeriodInSeconds = 5 * 60;
   // const char *certificateFingerprint;
 
 protected:

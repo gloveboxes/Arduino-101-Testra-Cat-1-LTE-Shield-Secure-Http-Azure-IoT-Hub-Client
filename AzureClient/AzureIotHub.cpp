@@ -186,11 +186,11 @@ int AzureIotHub::sendData(char *data)
 int AzureIotHub::tcpWrite(char *data, uint16_t length)
 {
   int tcpStatus = conn->TCPWrite(data, length);
-  if (tcpStatus != CONNECTION4G_STATUS_OK)
-  {
-    connected4G = false;
-    conn->closeTCP();
-  }
+//  if (tcpStatus != CONNECTION4G_STATUS_OK)
+//  {
+//    connected4G = false;
+//    conn->closeTCP();
+//  }
   return tcpStatus;
 }
 
@@ -205,32 +205,26 @@ int AzureIotHub::sendData(const char *data, int length)
     return -1;
   }
 
-  if (length < segmentLength)
+  while (startChar + segmentLength < length)
   {
-    tcpStatus = AzureIotHub::tcpWrite((char*)data, length);
-  }
-  else
-  {
-    while (startChar + segmentLength < length)
+    strncpy(requestBuffer, data + startChar, segmentLength);
+    requestBuffer[segmentLength] = 0;
+
+    tcpStatus = AzureIotHub::tcpWrite(requestBuffer, segmentLength);
+    if (tcpStatus != CONNECTION4G_STATUS_OK)
     {
-      strncpy(requestBuffer, data + startChar, segmentLength);
-      requestBuffer[segmentLength] = 0;
-
-      tcpStatus = AzureIotHub::tcpWrite(requestBuffer, segmentLength);
-      if (tcpStatus != CONNECTION4G_STATUS_OK)
-      {
-        return tcpStatus;
-      }
-      startChar += segmentLength;
+      Serial.println(tcpStatus);
+      return tcpStatus;
     }
-
-    length -= startChar;
-    strncpy(requestBuffer, data + startChar, length);
-    requestBuffer[length] = 0;
-
-    tcpStatus = AzureIotHub::tcpWrite(requestBuffer, length);
+    startChar += segmentLength;
   }
-  
+
+  length = length - startChar;
+  strncpy(requestBuffer, data + startChar, length);
+  requestBuffer[length] = 0;
+
+  tcpStatus = AzureIotHub::tcpWrite(requestBuffer, length);
+
   return tcpStatus;
 }
 
